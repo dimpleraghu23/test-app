@@ -1,28 +1,27 @@
 from flask import Flask
 import os
 from datetime import datetime
+import pytz
+import subprocess
 
 app = Flask(__name__)
 
 @app.route('/htop')
 def htop():
-    # Get full name and username
-    full_name = "DIMPLE R" 
+    # Get Full name and username
+    full_name = "Dimple R"  
     username = os.environ.get('USER') or os.environ.get('LOGNAME') or 'Unknown User'
     
     # Get current server time in IST
-    server_time = datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')
+    ist = pytz.timezone('Asia/Kolkata')  # IST timezone
+    server_time = datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')
 
-    # Gather process information from /proc
-    process_info = []
-    for pid in os.listdir('/proc'):
-        if pid.isdigit():  # Check if the directory name is a PID
-            try:
-                with open(f'/proc/{pid}/stat', 'r') as f:
-                    stat = f.read().split()
-                    process_info.append(f'PID: {pid}, Name: {stat[1]}, State: {stat[2]}')
-            except Exception as e:
-                continue  # Skip any PIDs that cannot be accessed
+    # Get the top output by running the top command
+    try:
+        # Run the top command and capture output
+        top_output = subprocess.check_output(['top', '-b', '-n', '1']).decode('utf-8')
+    except Exception as e:
+        top_output = f"Error retrieving top output: {str(e)}"
 
     # Prepare HTML output
     return f"""
@@ -35,11 +34,11 @@ def htop():
     </head>
     <body>
         <h1>System Information</h1>
-        <p><strong>Full Name:</strong> {full_name}</p>
+        <p><strong>Name:</strong> {full_name}</p>
         <p><strong>Username:</strong> {username}</p>
         <p><strong>Server Time (IST):</strong> {server_time}</p>
-        <h2>Processes:</h2>
-        <pre>{'\n'.join(process_info)}</pre>
+        <h2>TOP output:</h2>
+        <pre>{top_output}</pre>
     </body>
     </html>
     """
